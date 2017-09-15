@@ -7,7 +7,7 @@
 	var Graphics=laya.display.Graphics,Handler=laya.utils.Handler,Input=laya.display.Input,Loader=laya.net.Loader;
 	var Node=laya.display.Node,Point=laya.maths.Point,Rectangle=laya.maths.Rectangle,Render=laya.renders.Render;
 	var Sprite=laya.display.Sprite,Text=laya.display.Text,Texture=laya.resource.Texture,Tween=laya.utils.Tween;
-	var Utils=laya.utils.Utils,WeakObject=laya.utils.WeakObject;
+	var Utils=laya.utils.Utils;
 	Laya.interface('laya.ui.IItem');
 	Laya.interface('laya.ui.IRender');
 	Laya.interface('laya.ui.ISelect');
@@ -176,6 +176,7 @@
 		*修改纹理资源。
 		*/
 		__proto.changeSource=function(){
+			if (AutoBitmap.cacheCount++> 50)AutoBitmap.clearCache();
 			this._isChanged=false;
 			var source=this._source;
 			if (!source || !source.bitmap)return;
@@ -189,8 +190,8 @@
 				}else {
 				source.$_GID || (source.$_GID=Utils.getGID());
 				var key=source.$_GID+"."+width+"."+height+"."+sizeGrid.join(".");
-				if (WeakObject.I.get(key)){
-					this.cmds=WeakObject.I.get(key);
+				if (AutoBitmap.cmdCaches[key]){
+					this.cmds=AutoBitmap.cmdCaches[key];
 					return;
 				}
 				this.clear();
@@ -219,7 +220,7 @@
 				right && this.drawBitmap(repeat,AutoBitmap.getTexture(source,sw-right,top,right,sh-top-bottom),width-right,top,right,height-top-bottom);
 				this.drawBitmap(repeat,AutoBitmap.getTexture(source,left,top,sw-left-right,sh-top-bottom),left,top,width-left-right,height-top-bottom);
 				if (needClip)this.restore();
-				if (this.autoCacheCmd && !Render.isConchApp)WeakObject.I.set(key,this.cmds);
+				if (this.autoCacheCmd && !Render.isConchApp)AutoBitmap.cmdCaches[key]=this.cmds;
 			}
 			this._repaint();
 		}
@@ -228,7 +229,7 @@
 			(width===void 0)&& (width=0);
 			(height===void 0)&& (height=0);
 			if (width < 0.1 || height < 0.1)return;
-			if (repeat && (tex.width !=width || tex.height !=height))this.fillTexture(tex,x,y,width,height);
+			if (repeat && (tex.width!=width || tex.height !=height))this.fillTexture(tex,x,y,width,height);
 			else this.drawTexture(tex,x,y,width,height);
 		}
 
@@ -320,14 +321,31 @@
 			if (height <=0)height=1;
 			tex.$_GID || (tex.$_GID=Utils.getGID())
 			var key=tex.$_GID+"."+x+"."+y+"."+width+"."+height;
-			var texture=WeakObject.I.get(key);
+			var texture=AutoBitmap.textureCache[key];
 			if (!texture){
-				texture=Texture.createFromTexture(tex,x,y,width,height);
-				WeakObject.I.set(key,texture);
+				texture=AutoBitmap.textureCache[key]=Texture.createFromTexture(tex,x,y,width,height);
 			}
 			return texture;
 		}
 
+		AutoBitmap.clearCache=function(){
+			AutoBitmap.cacheCount=0;
+			AutoBitmap.cmdCaches={};
+			AutoBitmap.textureCache={};
+		}
+
+		AutoBitmap.setCache=function(key,value){
+			AutoBitmap.cacheCount++;
+			AutoBitmap.textureCache[key]=value;
+		}
+
+		AutoBitmap.getCache=function(key){
+			return AutoBitmap.textureCache[key];
+		}
+
+		AutoBitmap.cmdCaches={};
+		AutoBitmap.cacheCount=0;
+		AutoBitmap.textureCache={};
 		return AutoBitmap;
 	})(Graphics)
 
@@ -1221,7 +1239,7 @@
 			var height=img.sourceHeight / this._stateNum;
 			img.$_GID || (img.$_GID=Utils.getGID());
 			var key=img.$_GID+"-"+this._stateNum;
-			var clips=WeakObject.I.get(key);
+			var clips=AutoBitmap.getCache(key);
 			if (clips)this._sources=clips;
 			else {
 				this._sources=[];
@@ -1232,7 +1250,7 @@
 						this._sources.push(Texture.createFromTexture(img,0,height *i,width,height));
 					}
 				}
-				WeakObject.I.set(key,this._sources);
+				AutoBitmap.setCache(key,this._sources);
 			}
 			if (this._autoSize){
 				this._bitmap.width=this._width || width;
@@ -1728,7 +1746,7 @@
 				var w=this._clipWidth || Math.ceil(img.sourceWidth / this._clipX);
 				var h=this._clipHeight || Math.ceil(img.sourceHeight / this._clipY);
 				var key=this._skin+w+h;
-				var clips=WeakObject.I.get(key);
+				var clips=AutoBitmap.getCache(key);
 				if (clips)this._sources=clips;
 				else {
 					this._sources=[];
@@ -1737,7 +1755,7 @@
 							this._sources.push(Texture.createFromTexture(img,w *j,h *i,w,h));
 						}
 					}
-					WeakObject.I.set(key,this._sources);
+					AutoBitmap.setCache(key,this._sources);
 				}
 				this.index=this._index;
 				this.event(/*laya.events.Event.LOADED*/"loaded");

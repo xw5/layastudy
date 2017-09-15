@@ -1,6 +1,7 @@
-
+var window = window || global;
+var document = document || (window.document = {});
 /***********************************/
-/*http://www.layabox.com  2017/3/23*/
+/*http://www.layabox.com 2016/11/25*/
 /***********************************/
 var Laya=window.Laya=(function(window,document){
 	var Laya={
@@ -83,14 +84,13 @@ var Laya=window.Laya=(function(window,document){
 				var supers=_super.split(',');
 				a.extend=[];
 				for(var i=0;i<supers.length;i++){
-					var nm=supers[i];
-					ins[nm]=ins[nm] || {self:nm};
-					a.extend.push(ins[nm]);
+					var name=supers[i];
+					ins[name]=ins[name] || {self:name};
+					a.extend.push(ins[name]);
 				}
 			}
 			var o=window,words=name.split('.');
-			for(var i=0;i<words.length-1;i++) o=o[words[i]];
-			o[words[words.length-1]]={__interface__:name};
+			for(var i=0;i<words.length-1;i++) o=o[words[i]];o[words[words.length-1]]={__interface__:name};
 		},
 		class:function(o,fullName,_super,miniName){
 			_super && Laya.__extend(o,_super);
@@ -183,10 +183,10 @@ var Laya=window.Laya=(function(window,document){
 		}
 	};
 
-    window.console=window.console || ({log:function(){}});
+	window.console=window.console || ({log:function(){}});
 	window.trace=window.console.log;
 	Error.prototype.throwError=function(){throw arguments;};
-	//String.prototype.substr=Laya.__substr;
+	String.prototype.substr=Laya.__substr;
 	Object.defineProperty(Array.prototype,'fixed',{enumerable: false});
 
 	return Laya;
@@ -362,7 +362,6 @@ var Laya=window.Laya=(function(window,document){
 			Graphics.__init__();
 			Laya.timer=new Timer();
 			Laya.loader=new LoaderManager();
-			WeakObject.__init__();
 			for (var i=0,n=plugins.length;i < n;i++){
 				if (plugins[i].enable)plugins[i].enable();
 			}
@@ -398,7 +397,7 @@ var Laya=window.Laya=(function(window,document){
 		Laya.stage=null;
 		Laya.timer=null;
 		Laya.loader=null;
-		Laya.version="1.7.10beta";
+		Laya.version="1.7.9";
 		Laya.render=null
 		Laya._currentStage=null
 		Laya._isinit=false;
@@ -2974,7 +2973,7 @@ var Laya=window.Laya=(function(window,document){
 						_this.checkMouseWheel(evt);
 						break ;
 					case "mouseout":
-						TouchManager.I.stageMouseOut();
+						_this._stage.event(/*laya.events.Event.MOUSE_OUT*/"mouseout",_this._event.setTo(/*laya.events.Event.MOUSE_OUT*/"mouseout",_this._stage,_this._stage));
 						break ;
 					case "mouseover":
 						_this._stage.event(/*laya.events.Event.MOUSE_OVER*/"mouseover",_this._event.setTo(/*laya.events.Event.MOUSE_OVER*/"mouseover",_this._stage,_this._stage));
@@ -3012,12 +3011,6 @@ var Laya=window.Laya=(function(window,document){
 
 		__class(TouchManager,'laya.events.TouchManager');
 		var __proto=TouchManager.prototype;
-		__proto._clearTempArrs=function(){
-			TouchManager._oldArr.length=0;
-			TouchManager._newArr.length=0;
-			TouchManager._tEleArr.length=0;
-		}
-
 		/**
 		*从touch表里查找对应touchID的数据
 		*@param touchID touch ID
@@ -3101,7 +3094,6 @@ var Laya=window.Laya=(function(window,document){
 				preO.tar=ele;
 			}
 			this.sendEvents(arrs,isLeft ? /*laya.events.Event.MOUSE_DOWN*/"mousedown" :/*laya.events.Event.RIGHT_MOUSE_DOWN*/"rightmousedown",touchID);
-			this._clearTempArrs();
 		}
 
 		/**
@@ -3217,7 +3209,6 @@ var Laya=window.Laya=(function(window,document){
 				arrs=this.getEles(ele,null,TouchManager._tEleArr);
 			}
 			this.sendEvents(arrs,/*laya.events.Event.MOUSE_MOVE*/"mousemove",touchID);
-			this._clearTempArrs();
 		}
 
 		__proto.getLastOvers=function(){
@@ -3227,12 +3218,6 @@ var Laya=window.Laya=(function(window,document){
 			}
 			TouchManager._tEleArr.push(Laya.stage);
 			return TouchManager._tEleArr;
-		}
-
-		__proto.stageMouseOut=function(){
-			var lastOvers;
-			lastOvers=this.getLastOvers();
-			this.sendEvents(lastOvers,/*laya.events.Event.MOUSE_OUT*/"mouseout",0);
 		}
 
 		/**
@@ -3301,7 +3286,6 @@ var Laya=window.Laya=(function(window,document){
 					Pool.recover("TouchData",preO);
 				}
 			}
-			this._clearTempArrs();
 		}
 
 		TouchManager._oldArr=[];
@@ -5293,19 +5277,18 @@ var Laya=window.Laya=(function(window,document){
 				Render.isWebGL && ctx.setPathId(-1);
 				ctx.beginPath();
 				x+=args[0],y+=args[1];
-				Render.isWebGL && ctx.movePath(x,y);
 				var paths=args[2];
 				for (var i=0,n=paths.length;i < n;i++){
 					var path=paths[i];
 					switch (path[0]){
 						case "moveTo":
-							Render.isWebGL ? ctx.moveTo(path[1],path[2]):ctx.moveTo(x+path[1],y+path[2]);
+							ctx.moveTo(x+path[1],y+path[2]);
 							break ;
 						case "lineTo":
-							Render.isWebGL ? ctx.lineTo(path[1],path[2]):ctx.lineTo(x+path[1],y+path[2]);
+							ctx.lineTo(x+path[1],y+path[2]);
 							break ;
 						case "arcTo":
-							Render.isWebGL ? ctx.arcTo(path[1],path[2],path[3],path[4],path[5]):ctx.arcTo(x+path[1],y+path[2],x+path[3],y+path[4],path[5]);
+							ctx.arcTo(x+path[1],y+path[2],x+path[3],y+path[4],path[5]);
 							break ;
 						case "closePath":
 							ctx.closePath();
@@ -9874,111 +9857,6 @@ var Laya=window.Laya=(function(window,document){
 
 
 	/**
-	*封装弱引用WeakMap
-	*如果支持WeakMap，则使用WeakMap，如果不支持，则用Object代替
-	*注意：如果采用Object，为了防止内存泄漏，则采用定时清理缓存策略
-	*/
-	//class laya.utils.WeakObject
-	var WeakObject=(function(){
-		function WeakObject(){
-			this._obj=null;
-			this._obj=WeakObject.supportWeakMap ? new Browser.window.WeakMap():{};
-			if (!WeakObject.supportWeakMap)WeakObject._maps.push(this);
-		}
-
-		__class(WeakObject,'laya.utils.WeakObject');
-		var __proto=WeakObject.prototype;
-		/**
-		*设置缓存
-		*@param key kye对象，可被回收
-		*@param value object对象，可被回收
-		*/
-		__proto.set=function(key,value){
-			if (key==null)return;
-			if (WeakObject.supportWeakMap){
-				var objKey=key;
-				if ((typeof key=='string')|| (typeof key=='number')){
-					objKey=WeakObject._keys[key];
-					if (!objKey)objKey=WeakObject._keys[key]={k:key};
-				}
-				this._obj.set(objKey,value);
-				}else {
-				if ((typeof key=='string')|| (typeof key=='number')){
-					this._obj[key]=value;
-					}else {
-					key.$_GID || (key.$_GID=Utils.getGID());
-					this._obj[key.$_GID]=value;
-				}
-			}
-		}
-
-		/**
-		*获取缓存
-		*@param key kye对象，可被回收
-		*/
-		__proto.get=function(key){
-			if (key==null)return null;
-			if (WeakObject.supportWeakMap){
-				var objKey=((typeof key=='string')|| (typeof key=='number'))? WeakObject._keys[key] :key;
-				return this._obj.get(objKey);
-				}else {
-				if ((typeof key=='string')|| (typeof key=='number'))return this._obj[key];
-				return this._obj[key.$_GID];
-			}
-		}
-
-		/**
-		*删除缓存
-		*/
-		__proto.del=function(key){
-			if (key==null)return;
-			if (WeakObject.supportWeakMap){
-				var objKey=((typeof key=='string')|| (typeof key=='number'))? WeakObject._keys[key] :key;
-				/*__JS__ */_obj.delete(objKey);
-				}else {
-				if ((typeof key=='string')|| (typeof key=='number'))delete this._obj[key];
-				else delete this._obj[this._obj.$_GID];
-			}
-		}
-
-		/**
-		*是否有缓存
-		*/
-		__proto.has=function(key){
-			if (key==null)return false;
-			if (WeakObject.supportWeakMap){
-				var objKey=((typeof key=='string')|| (typeof key=='number'))? WeakObject._keys[key] :key;
-				return this._obj.has(objKey);
-				}else {
-				if ((typeof key=='string')|| (typeof key=='number'))return this._obj[key] !=null;
-				return this._obj[this._obj.$_GID] !=null;
-			}
-		}
-
-		WeakObject.__init__=function(){
-			WeakObject.supportWeakMap=Browser.window.WeakMap !=null;
-			if (!WeakObject.supportWeakMap)Laya.timer.loop(WeakObject.delInterval,null,WeakObject.clearCache);
-		}
-
-		WeakObject.clearCache=function(){
-			for (var i=0,n=WeakObject._maps.length;i < n;i++){
-				var obj=WeakObject._maps[i];
-				obj._obj={};
-			}
-		}
-
-		WeakObject.supportWeakMap=false;
-		WeakObject.delInterval=10 *60 *1000;
-		WeakObject._keys={};
-		WeakObject._maps=[];
-		__static(WeakObject,
-		['I',function(){return this.I=new WeakObject();}
-		]);
-		return WeakObject;
-	})()
-
-
-	/**
 	*@private
 	*/
 	//class laya.utils.WordText
@@ -11394,9 +11272,7 @@ var Laya=window.Laya=(function(window,document){
 		AudioSound._initMusicAudio=function(){
 			if (AudioSound._musicAudio)return;
 			if (!AudioSound._musicAudio)AudioSound._musicAudio=Browser.createElement("audio");
-			if (!Render.isConchApp){
-				Browser.document.addEventListener("touchstart",AudioSound._makeMusicOK);
-			}
+			Browser.document.addEventListener("touchstart",AudioSound._makeMusicOK);
 		}
 
 		AudioSound._makeMusicOK=function(){
@@ -12305,10 +12181,9 @@ var Laya=window.Laya=(function(window,document){
 		*<p>如果url为数组，返回true；否则返回指定的资源类对象，可以通过侦听此对象的 Event.LOADED 事件来判断资源是否已经加载完毕。</p>
 		*<p><b>注意：</b>cache参数只能对文件后缀为atlas的资源进行缓存控制，其他资源会忽略缓存，强制重新加载。</p>
 		*@param url 资源地址或者数组。如果url和clas同时指定了资源类型，优先使用url指定的资源类型。参数形如：[{url:xx,clas:xx,priority:xx,params:xx},{url:xx,clas:xx,priority:xx,params:xx}]。
-		*@param complete 加载结束回调。根据url类型不同分为2种情况：1. url为String类型，也就是单个资源地址，如果加载成功，则回调参数值为加载完成的资源，否则为null；2. url为数组类型，指定了一组要加载的资源，如果全部加载成功，则回调参数值为true，否则为false。
 		*@param progress 资源加载进度回调，回调参数值为当前资源加载的进度信息(0-1)。
 		*@param clas 资源类名。如果url和clas同时指定了资源类型，优先使用url指定的资源类型。参数形如：Texture。
-		*@param params 资源构造参数。
+		*@param type 资源类型。参数形如：Loader.IMAGE。
 		*@param priority (default=1)加载的优先级，优先级高的优先加载。有0-4共5个优先级，0最高，4最低。
 		*@param cache 是否缓存加载的资源。
 		*@return 如果url为数组，返回true；否则返回指定的资源类对象。
@@ -12361,7 +12236,7 @@ var Laya=window.Laya=(function(window,document){
 				var extension=Utils.getFileExtension(url);
 				var creatItem=LoaderManager.createMap[extension];
 				if (!creatItem)
-					throw new Error("LoaderManager:unknown file("+url+") extension with: "+extension+".");
+					throw new Error("LoaderManager:unknown file extension with: "+extension+".");
 				if (!clas)clas=creatItem[0];
 				var type=creatItem[1];
 				if (extension=="atlas"){
@@ -13380,18 +13255,12 @@ var Laya=window.Laya=(function(window,document){
 			if (this.bitmap && (this.bitmap).useNum > 0){
 				var temp=this.bitmap;
 				if (forceDispose){
-					if (Render.isConchApp && temp.source && temp.source.conchDestroy){
-						this.bitmap.source.conchDestroy();
-					}
 					this.bitmap=null;
 					temp.dispose();
 					(temp).useNum=0;
 					}else {
 					(temp).useNum--;
 					if ((temp).useNum==0){
-						if (Render.isConchApp && temp.source && temp.source.conchDestroy){
-							this.bitmap.source.conchDestroy();
-						}
 						this.bitmap=null;
 						temp.dispose();
 					}
@@ -17139,7 +17008,6 @@ var Laya=window.Laya=(function(window,document){
 					}
 					break ;
 				}
-			if (this.conchModel)this.conchModel.size(this._width,this._height);
 			scaleX *=this.scaleX;
 			scaleY *=this.scaleY;
 			if (scaleX===1 && scaleY===1){
@@ -19722,7 +19590,7 @@ var Laya=window.Laya=(function(window,document){
 	})(FrameAnimation)
 
 
-	Laya.__init([LoaderManager,EventDispatcher,Render,Browser,Timer,LocalStorage,TimeLine,GraphicAnimation]);
+	Laya.__init([EventDispatcher,LoaderManager,Render,Browser,Timer,LocalStorage,TimeLine,GraphicAnimation]);
 })(window,document,Laya);
 
 (function(window,document,Laya){

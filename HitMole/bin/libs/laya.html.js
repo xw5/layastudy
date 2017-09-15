@@ -157,7 +157,6 @@
 			function addLine (){
 				curLine.y=y;
 				y+=curLine.h+leading;
-				if (curLine.h==0)y+=lineHeight;
 				curLine.mWidth=tWordWidth;
 				tWordWidth=0;
 				curLine=new LayoutLine();
@@ -180,6 +179,7 @@
 				if ((oneLayout instanceof laya.html.dom.HTMLBrElement )){
 					addLine();
 					curLine.y=y;
+					curLine.h=lineHeight;
 					continue ;
 					}else if (oneLayout._isChar()){
 					htmlWord=oneLayout;
